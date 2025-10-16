@@ -125,15 +125,48 @@ Bagian ini menjelaskan konsep-konsep pemrograman dan Android yang menjadi fondas
 
 ## Bab 4: Fokus Utama - Memahami Android Activity Lifecycle
 
-Proyek ini secara sengaja menonjolkan siklus hidup Activity dengan menambahkan `Log` di setiap tahap. Ini adalah cara terbaik untuk memvisualisasikan bagaimana Android mengelola aplikasi Anda.
+Salah satu tujuan utama dari proyek ini adalah untuk menjadi alat pembelajaran visual tentang **Android Activity Lifecycle**. Ini adalah konsep paling fundamental dalam pengembangan Android, yang mengatur bagaimana sebuah aplikasi hidup, mati, dan bereaksi terhadap interaksi pengguna dan sistem.
 
-- **`onCreate()`**: **Kelahiran.** Dipanggil sekali saat Activity dibuat. Di sinilah `setContent` dipanggil untuk membangun UI Compose.
-- **`onStart()`**: **Persiapan Tampil.** Activity akan segera terlihat di layar.
-- **`onResume()`**: **Di Panggung Utama.** Activity sekarang ada di latar depan (foreground) dan pengguna bisa berinteraksi dengannya.
-- **`onPause()`**: **Kehilangan Fokus.** Activity lain muncul menutupi sebagian, atau pengguna akan meninggalkan aplikasi. Ini adalah kesempatan pertama untuk menghentikan proses berat. Di sini, waktu terakhir dicatat ke Log.
-- **`onStop()`**: **Di Belakang Panggung.** Activity sudah tidak terlihat lagi di layar.
-- **`onRestart()`**: **Kembali ke Panggung.** Dipanggil saat pengguna kembali ke aplikasi dari state `onStop`.
-- **`onDestroy()`**: **Akhir dari Pertunjukan.** Activity akan dihancurkan. Ini adalah tempat untuk membersihkan semua sumber daya, seperti membatalkan `Job` Coroutine untuk mencegah kebocoran memori.
+### Penjelasan Dasar: Apa itu Lifecycle?
+
+Bayangkan sebuah Activity sebagai seorang aktor dalam sebuah pertunjukan teater. Lifecycle adalah serangkaian tahapan yang dialami aktor tersebut, yang diatur oleh sutradara (Sistem Operasi Android).
+
+- **Dibuat (`onCreate`)**: Aktor dipilih dan diberi naskah.
+- **Mulai (`onStart`)**: Aktor berjalan ke belakang panggung, siap untuk tampil.
+- **Lanjut (`onResume`)**: Aktor berada di tengah panggung, berakting, dan penonton bisa melihatnya.
+- **Jeda (`onPause`)**: Aktor berhenti sejenak karena ada pengumuman singkat, tapi ia masih di panggung.
+- **Berhenti (`onStop`)**: Aktor keluar dari panggung dan kembali ke ruang ganti.
+- **Hancur (`onDestroy`)**: Pertunjukan selesai, aktor pulang.
+
+Proyek ini secara sengaja menempatkan `Log` di setiap tahapan ini, sehingga kita bisa melihat di Logcat kapan tepatnya setiap peristiwa terjadi.
+
+### Elaborasi & Keterkaitan dengan Proyek Stopwatch
+
+Berikut adalah analisis mendalam dari setiap tahapan lifecycle dan implementasinya di `MainActivity.kt`:
+
+- #### `onCreate()` - Kelahiran & Inisialisasi Satu Kali
+  - **Penjelasan Dasar:** Ini adalah metode yang pertama kali dipanggil saat Activity dibuat. Ini adalah tempat yang tepat untuk semua inisialisasi yang hanya perlu dilakukan sekali seumur hidup Activity, seperti menyiapkan UI atau data awal.
+  - **Keterkaitan Proyek:** Di sini, perintah paling krusial adalah `setContent { ... }`. Ini adalah gerbang yang memberitahu Android untuk mulai membangun antarmuka pengguna menggunakan Jetpack Compose. Seluruh hierarki Composable (`StopwatchScreen`, `Text`, `Button`, dll.) "dilahirkan" di dalam blok ini. Karena ini hanya terjadi sekali, ini adalah tempat yang efisien untuk meletakkan UI.
+
+- #### `onStart()` - Persiapan Tampil
+  - **Penjelasan Dasar:** Dipanggil setelah `onCreate` atau `onRestart`. Pada titik ini, Activity akan segera terlihat oleh pengguna, tetapi pengguna belum bisa berinteraksi dengannya.
+  - **Keterkaitan Proyek:** Dalam proyek ini, `onStart()` hanya berisi `Log`. Ini berfungsi sebagai penanda bahwa aplikasi telah memasuki tahap "siap-siap tampil".
+
+- #### `onResume()` - Di Panggung Utama & Interaktif
+  - **Penjelasan Dasar:** Activity sekarang sepenuhnya terlihat di latar depan (foreground) dan memiliki fokus input pengguna. Ini adalah keadaan normal untuk aplikasi yang sedang aktif digunakan.
+  - **Keterkaitan Proyek:** Selain `Log` standar, di sini juga ada `Log.i(TAG, "--> RESUMED. Last Paused Time...")`. Ini sangat signifikan. Ini menunjukkan bahwa developer ingin tahu nilai `currentElapsedTime` setiap kali aplikasi kembali aktif. Ini adalah langkah debugging yang penting untuk memastikan state waktu tidak hilang atau korup saat aplikasi kembali dari keadaan jeda.
+
+- #### `onPause()` - Kehilangan Fokus
+  - **Penjelasan Dasar:** Dipanggil saat sistem akan memulai Activity lain, atau saat pengguna menerima telepon. Activity masih terlihat sebagian, tetapi tidak lagi memiliki fokus. Ini adalah kesempatan pertama untuk menyimpan data yang belum disimpan atau menghentikan animasi.
+  - **Keterkaitan Proyek:** Ini adalah salah satu callback terpenting untuk debugging di proyek ini. `Log.w(TAG, "--> PAUSED. Current Elapsed Time...")` mencatat nilai stopwatch tepat saat aplikasi akan dijeda. Ini memungkinkan developer untuk memverifikasi bahwa nilai `elapsedPauseTime` di dalam `StopwatchScreen` telah diatur dengan benar.
+
+- #### `onStop()` - Di Belakang Panggung
+  - **Penjelasan Dasar:** Dipanggil saat Activity tidak lagi terlihat oleh pengguna sama sekali (misalnya, pengguna menekan tombol Home atau beralih ke aplikasi lain). Di sini, operasi yang tidak perlu saat aplikasi di latar belakang harus dihentikan.
+  - **Keterkaitan Proyek:** Jika timer masih berjalan, idealnya di sinilah kita bisa menghentikannya untuk menghemat baterai. Namun, dalam implementasi saat ini, `onStop()` hanya berisi `Log`. Logika penghentian timer (`pauseTimer`) terikat pada tombol UI, bukan pada lifecycle.
+
+- #### `onDestroy()` - Akhir dari Pertunjukan
+  - **Penjelasan Dasar:** Ini adalah panggilan terakhir sebelum Activity dihancurkan oleh sistem, baik karena pengguna menutupnya atau karena sistem membutuhkan memori. Ini adalah kesempatan terakhir untuk membersihkan semua sumber daya.
+  - **Keterkaitan Proyek:** Terdapat komentar yang sangat penting: `// Logika pembersihan Job Coroutine Anda ada di sini`. Ini menunjukkan kesadaran developer bahwa `Job` coroutine yang menjalankan timer harus dibatalkan secara eksplisit di sini (`currentTimerJob?.cancel()`). Jika tidak, coroutine bisa terus berjalan di latar belakang bahkan setelah UI hancur, menyebabkan **kebocoran memori (memory leak)**.
 
 ---
 
