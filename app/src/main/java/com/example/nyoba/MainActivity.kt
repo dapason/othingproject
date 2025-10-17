@@ -204,7 +204,7 @@ fun StopwatchScreen(
                 onClick = { if (isRunning) recordLap() else resetTimer() },
                 modifier = Modifier
                     .weight(1f)
-                    .height(55.dp),
+                    .height(56.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isRunning) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
                 ),
@@ -212,20 +212,20 @@ fun StopwatchScreen(
             ) {
                 Text(if (isRunning) "LAP" else "RESET")
             }
-            Spacer(modifier = Modifier.width(17.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
             Button(
                 onClick = { if (isRunning) pauseTimer() else startTimer() },
                 modifier = Modifier
                     .weight(1f)
-                    .height(55.dp)
+                    .height(56.dp)
             ) {
                 Text(if (isRunning) "PAUSE" else "START")
             }
         }
 
         HorizontalDivider(
-            modifier = Modifier.padding(vertical = 17.dp),
+            modifier = Modifier.padding(vertical = 16.dp),
             thickness = DividerDefaults.Thickness,
             color = DividerDefaults.color
         )
